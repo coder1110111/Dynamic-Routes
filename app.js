@@ -1,3 +1,5 @@
+//on 24th video
+
 const path = require('path');
 
 const express = require('express');
@@ -9,6 +11,10 @@ const errorController = require('./controllers/error');
 const sequelize = require('./util/database');
 const Product = require('./models/product');
 const User = require('./models/user');
+const Cart = require('./models/cart');
+const CartItem = require('./models/cart-item');
+const Order = require('./models/order');
+const OrderItem = require('./models/order-item');
 
 const app = express();
 
@@ -36,7 +42,20 @@ app.use(shopRoutes);
 app.use(errorController.get404);
 
 Product.belongsTo(User, {constraints: true, onDelete: 'CASCADE'});        //Essentially a user created the Product
-User.hasMany(Product);
+User.hasMany(Product);      //Better to define both direction for better deployment
+//User to Product have One to Many relation
+
+User.hasOne(Cart);
+Cart.belongsTo(User);       //Cart-User has One to One Relation
+
+Cart.belongsToMany(Product, { through: CartItem});
+Product.belongsToMany(Cart, { through: CartItem});    //Cart-Product have Many to Many relation
+
+Order.belongsTo(User);
+User.hasMany(Order);
+
+Order.belongsToMany(Product, { through: OrderItem} );
+
 
 sequelize
     //.sync( {force:true} )     //will forcibly drop all the table then recreate them with association as stated
@@ -53,6 +72,9 @@ sequelize
     })
     .then(user => {
         //console.log(user);
+        return user.createCart();
+    })
+    .then(cart => {
         app.listen(3000);
     })
     .catch(err => {
